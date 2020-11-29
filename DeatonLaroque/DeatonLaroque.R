@@ -76,11 +76,11 @@ for (i in 1:200) {
 }
 plot(1:201, s$Z[lvls], type="l")
 
-# (Inverse) Demand function
+# (Inverse) Demand function expressed in theta1, theta2 (see equation (43))
 
 setDemandFunction = function(type){
-  s$P = switch(type, "linear" = function(a,b,x){return (a*x+b)})
-  s$D = switch(type, "linear" = function(a,b,x){return ((p-b)/a)})
+  s$P = switch(type, "linear" = function(t1,t2,x){return (t1*x-exp(t2))})
+  s$D = switch(type, "linear" = function(t1,t2,x){return ((p+exp(t2))/t1)})
 }
 
 setDemandFunction("linear")
