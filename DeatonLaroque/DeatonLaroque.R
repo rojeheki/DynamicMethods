@@ -21,7 +21,7 @@ calculateZLevels = function(n){
   return (-(dnorm(theta[-1])-dnorm(theta[-(n+1)]))*n)
 }
 
-s = new.env()    # s for specification
+s = new.env()
 
 setDiscretization = function(n,rho){
   s$T=generateTransitionMatrix(n,rho)
