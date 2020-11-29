@@ -130,12 +130,14 @@ setXDiscretization = function (m) {
 setXDiscretization(20)
 
 # Iterate to improve price function f
-# f(x,z) is stored as a matrix with f[a,i] representing f(X[a],Z[i])
+# f(x,z) is stored as a matrix with f[k,i] representing f(X[k],Z[i])
 
 initF = function(){
   s$f = matrix(nrow=s$m, ncol=s$n)
-  for (a in 1:s$m){
-    s$f[a,]=max(s$P(getA(),getB(),s$X[a]), 0)
+  a = getA()
+  b = getB()
+  for (k in 1:s$m){
+    s$f[k,]=max(s$P(a,b,s$X[k]), 0)
   }
 }
 
@@ -176,7 +178,6 @@ for(i in 1:50){
   iterateF()
 }
 
-print(s$f)
 
 plot(s$X,s$f[,1],type="l")
 for(i in 2:s$n){
