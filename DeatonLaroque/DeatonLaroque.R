@@ -145,23 +145,27 @@ initF()
 # Using formula (28)
 
 iterateF = function (){
+  a = getA()
+  b = getB()
+  delta = getDelta()
   newF = matrix(nrow=s$m, ncol=s$n)
-  beta = (1-getDelta())/(1+getR())
+  beta = (1-delta)/(1+getR())
   splines=list()
   for (i in 1:s$n){
     splines=append(splines,splinefun(s$X, s$f[,i]))
   }
   futureValue = function(x,i){
     v = 0
-    y=s$D(getA(),getB(),splines[[i]](x))           # Does not need to be calculated n times
+    y = s$D(a,b,splines[[i]](x))
     for (j in 1:s$n){
-      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-getDelta())*(x-y))
+      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-delta)*(x-y))
     }
     return (beta*v)
   }
-  for (a in 1:s$m){
+  for (k in 1:s$m){
+    currentPrice=s$P(a,b,s$X[k])
     for (i in 1:s$n){
-      newF[a,i]=max(futureValue(s$X[a],i),s$P(getA(),getB(),s$X[a]))
+      newF[k,i]=max(futureValue(s$X[k],i),currentPrice)
     }
   }
   s$f=newF
@@ -169,10 +173,8 @@ iterateF = function (){
 
 
 for(i in 1:50){
-  print(i)
   iterateF()
 }
-
 
 print(s$f)
 
