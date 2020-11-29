@@ -84,3 +84,22 @@ setDemandFunction = function(type){
 }
 
 setDemandFunction("linear")
+
+# set static parameters
+
+m = new.env()
+m$r = 0.05
+
+# Transform to and from generic parameter vector theta
+
+toTheta = function(a,b,delta){
+  return (c(a, log(-b), log(delta+0.05)))
+}
+
+fromTheta = function(theta){
+  return (data.frame(a=theta[1],b=-exp(theta[2]),delta=-0.05+exp(theta[3])))
+}
+
+m$theta = toTheta(0.2, -0.15, 0.12)
+
+
