@@ -84,4 +84,3 @@ setDemandFunction = function(type){
 }
 
 setDemandFunction("linear")
-
