@@ -1,0 +1,3 @@
+# DynamicMethods
+
+Various macroeconomic models
