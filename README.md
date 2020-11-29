@@ -1,3 +1,3 @@
 # DynamicMethods
 
-Various macroeconomic models
+Implementations of various economic models
