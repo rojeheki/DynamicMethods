@@ -23,14 +23,14 @@ calculateZLevels = function(n){
 
 s = new.env()
 
-setDiscretization = function(n,rho){
+setZDiscretization = function(n,rho){
   s$T=generateTransitionMatrix(n,rho)
   s$Z=calculateZLevels(n)
   s$n=n
   s$rho=rho
 }
 
-setDiscretization(10,0.7)
+setZDiscretization(10,0.7)
 
 expectedHarvest = function(currentLvl){
   return (sum(s$T[currentLvl,]*s$Z))
@@ -42,7 +42,7 @@ varianceExpectedHarvest = function(currentLvl){
 }
 
 # Figure 1
-setDiscretization(10,0.7)
+setZDiscretization(10,0.7)
 e = c()
 for (i in 1:10){
   e[i]=expectedHarvest(i)
@@ -54,7 +54,7 @@ points(s$Z[1:10],e, type="l")
 # Figure 2 - Adjustment of the actual conditional variance by 1/(1-rho^2) necessary to replicate the chart
 plot(c(-2,2),c(0,1.5))
 for (rho in c(0.1,0.3,0.5,0.7,0.9)){
-  setDiscretization(10,rho)
+  setZDiscretization(10,rho)
   v = c()
   for (i in 1:10){
     v[i]=varianceExpectedHarvest(i)/(1-rho^2)
@@ -63,7 +63,7 @@ for (rho in c(0.1,0.3,0.5,0.7,0.9)){
 }
 
 # Figure 3
-setDiscretization(10,0.7)
+setZDiscretization(10,0.7)
 lvls = c(5)
 r = runif(200)
 for (i in 1:200) {
@@ -79,18 +79,22 @@ plot(1:201, s$Z[lvls], type="l")
 # (Inverse) Demand function
 
 setDemandFunction = function(type){
-  s$P = switch(type, "linear" = function(a,b,x){return (a*x+b)})
-  s$D = switch(type, "linear" = function(a,b,x){return ((p-b)/a)})
+  s$P = switch(type, "linear" = function(a,b,x){return (a+b*x)})
+  s$D = switch(type, "linear" = function(a,b,p){return ((p-a)/b)})
 }
 
 setDemandFunction("linear")
 
-# set static parameters
+# set static parameters of the QMLE
 
-m = new.env()
-m$r = 0.05
+q = new.env()     # q is for parameters of the QMLE so that the QMLE can be implemented agnostically
+q$constants["r"] = 0.05
 
-# Transform to and from generic parameter vector theta
+getR = function(){
+  return (q$constants["r"])
+}
+
+# Transform to and from generic parameter vector theta using formula (43) (not the (43) that's actually (42))
 
 toTheta = function(a,b,delta){
   return (c(a, log(-b), log(delta+0.05)))
@@ -100,6 +104,78 @@ fromTheta = function(theta){
   return (data.frame(a=theta[1],b=-exp(theta[2]),delta=-0.05+exp(theta[3])))
 }
 
-m$theta = toTheta(0.2, -0.15, 0.12)
+q$theta = toTheta(0.2, -0.15, 0.12)
+
+getA = function(){
+  return (fromTheta(q$theta)[[1]])
+}
+
+getB = function(){
+  return (fromTheta(q$theta)[[2]])
+}
+
+getDelta = function(){
+  return (fromTheta(q$theta)[[3]])
+}
+
+# Discretize X
+
+setXDiscretization = function (m) {
+  # minimum is 0 stored + minimum harvest, maximum is maximum harvest/delta with a safety factor allowing for delta to shrink
+  safety_factor = 2
+  s$X = (0:(m-1))/m*(s$Z[s$n]/getDelta()*safety_factor-s$Z[1])+s$Z[1]
+  s$m=m
+}
+
+setXDiscretization(20)
+
+# Iterate to improve price function f
+# f(x,z) is stored as a matrix with f[a,i] representing f(X[a],Z[i])
+
+initF = function(){
+  s$f = matrix(nrow=s$m, ncol=s$n)
+  for (a in 1:s$m){
+    s$f[a,]=max(s$P(getA(),getB(),s$X[a]), 0)
+  }
+}
+
+initF()
 
 
+# Using formula (28)
+
+iterateF = function (){
+  newF = matrix(nrow=s$m, ncol=s$n)
+  beta = (1-getDelta())/(1+getR())
+  splines=list()
+  for (i in 1:s$n){
+    splines=append(splines,splinefun(s$X, s$f[,i]))
+  }
+  futureValue = function(x,i){
+    v = 0
+    for (j in 1:s$n){
+      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-getDelta())*(x-s$D(getA(),getB(),splines[[i]](x))))
+    }
+    return (beta*v)
+  }
+  for (a in 1:s$m){
+    for (i in 1:s$n){
+      newF[a,i]=max(futureValue(s$X[a],i),s$P(getA(),getB(),s$X[a]))
+    }
+  }
+  s$f=newF
+}
+
+
+for(i in 1:50){
+  print(i)
+  iterateF()
+}
+
+
+print(s$f)
+
+plot(s$X,s$f[,1],type="l")
+for(i in 2:s$n){
+  points(s$X,s$f[,i],type="l")
+}
