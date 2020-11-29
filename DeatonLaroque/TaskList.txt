@@ -1,0 +1,7 @@
+Things to be programmed:
+
+Set price model specification (n, rho, demand function form)
+Transform a,b,delta into theta and back into a,b,delta. Initialize values
+Iterate price function using cubic interpolation
+Calculate pseudo-likelihood function (PLF)
+Run gradient method on the PLF to estimate theta
