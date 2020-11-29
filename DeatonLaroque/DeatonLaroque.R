@@ -153,8 +153,9 @@ iterateF = function (){
   }
   futureValue = function(x,i){
     v = 0
+    y=s$D(getA(),getB(),splines[[i]](x))           # Does not need to be calculated n times
     for (j in 1:s$n){
-      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-getDelta())*(x-s$D(getA(),getB(),splines[[i]](x))))
+      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-getDelta())*(x-y))
     }
     return (beta*v)
   }
