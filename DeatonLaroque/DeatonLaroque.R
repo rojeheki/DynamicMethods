@@ -147,12 +147,14 @@ initF()
 iterateF = function (){
   newF = matrix(nrow=s$m, ncol=s$n)
   beta = (1-getDelta())/(1+getR())
+  splines=list()
+  for (i in 1:s$n){
+    splines=append(splines,splinefun(s$X, s$f[,i]))
+  }
   futureValue = function(x,i){
-    iSpline = splinefun(s$X, s$f[,i])
     v = 0
     for (j in 1:s$n){
-      jSpline = splinefun(s$X, s$f[,j])
-      v = v + s$T[i,j]*jSpline(s$Z[j]+(1-getDelta())*(x-s$D(getA(),getB(),iSpline(x))))
+      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-getDelta())*(x-s$D(getA(),getB(),splines[[i]](x))))
     }
     return (beta*v)
   }
