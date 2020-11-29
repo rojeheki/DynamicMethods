@@ -164,6 +164,16 @@ iterateF = function (){
   s$f=newF
 }
 
-iterateF()
+
+for(i in 1:50){
+  print(i)
+  iterateF()
+}
+
 
 print(s$f)
+
+plot(s$X,s$f[,1],type="l")
+for(i in 2:s$n){
+  points(s$X,s$f[,i],type="l")
+}
