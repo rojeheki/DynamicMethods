@@ -180,3 +180,22 @@ plot(s$X,s$f[,1],type="l")
 for(i in 2:s$n){
   points(s$X,s$f[,i],type="l")
 }
+
+a = function (){
+  beta = (1-getDelta())/(1+getR())
+  splines=list()
+  for (i in 1:s$n){
+    splines=append(splines,splinefun(s$X, s$f[,i]))
+  }
+  futureValue = function(x,i){
+    v = 0
+    y=s$D(getA(),getB(),splines[[i]](x))           # Does not need to be calculated n times
+    for (j in 1:s$n){
+      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-getDelta())*(x-y))
+    }
+    return (beta*v)
+  }
+}
+
+system.time(a())
+
