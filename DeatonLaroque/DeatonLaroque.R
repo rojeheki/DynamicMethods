@@ -1,44 +1,43 @@
 library(cubature)
 
-# 3.1
+# 3.1 Discretization of the Harvest
 
-generateTransitionMatrix = function(n,rho) {
+generateZTransitionMatrix = function() {
   f = function(x) {
-    exp(-(x[1]^2-2*rho*x[1]*x[2]+x[2]^2)/(2*(1-rho^2)))/(2*pi*sqrt(1-rho^2))
+    exp(-(x[1]^2-2*s$rho*x[1]*x[2]+x[2]^2)/(2*(1-s$rho^2)))/(2*pi*sqrt(1-s$rho^2))
   }
-  theta = qnorm(0:n/n)
-  T = matrix(nrow = n, ncol = n)
-  for(i in 1:n) {
+  theta = qnorm(0:s$n/s$n)
+  s$Tz = matrix(nrow = s$n, ncol = s$n)
+  for(i in 1:s$n) {
     for(j in 1:i){
-      T[i,j]=T[j,i]=adaptIntegrate(f, lowerLimit=c(theta[i],theta[j]),upperLimit=c(theta[i+1],theta[j+1]))$integral*n
+      s$Tz[i,j]=s$Tz[j,i]=adaptIntegrate(f, lowerLimit=c(theta[i],theta[j]),upperLimit=c(theta[i+1],theta[j+1]))$integral*s$n
     }
   }
-  return (T)
 }
 
-calculateZLevels = function(n){
-  theta = qnorm(0:n/n)
-  return (-(dnorm(theta[-1])-dnorm(theta[-(n+1)]))*n)
+calculateZLevels = function(){
+  theta = qnorm(0:s$n/s$n)
+  s$Z = (-(dnorm(theta[-1])-dnorm(theta[-(s$n+1)]))*s$n)
 }
 
 s = new.env()
 
 setZDiscretization = function(n,rho){
-  s$T=generateTransitionMatrix(n,rho)
-  s$Z=calculateZLevels(n)
   s$n=n
   s$rho=rho
+  generateZTransitionMatrix()
+  calculateZLevels()
 }
 
 setZDiscretization(10,0.7)
 
-expectedHarvest = function(currentLvl){
-  return (sum(s$T[currentLvl,]*s$Z))
+expectedHarvest = function(currentZLvl){
+  return (sum(s$Tz[currentZLvl,]*s$Z))
 }
 
-varianceExpectedHarvest = function(currentLvl){
-  mean = expectedHarvest(currentLvl)
-  return (sum(s$T[currentLvl,]*(s$Z)^2)-mean^2)
+varianceExpectedHarvest = function(currentZLvl){
+  mean = expectedHarvest(currentZLvl)
+  return (sum(s$Tz[currentZLvl,]*(s$Z)^2)-mean^2)
 }
 
 # Figure 1
@@ -68,8 +67,8 @@ lvls = c(5)
 r = runif(200)
 for (i in 1:200) {
   j=1
-  while (r[i] > s$T[lvls[i],j]) {
-    r[i] = r[i]-s$T[lvls[i],j]
+  while (r[i] > s$Tz[lvls[i],j]) {
+    r[i] = r[i]-s$Tz[lvls[i],j]
     j = j+1
   }
   lvls[i+1] = j
@@ -97,47 +96,40 @@ getR = function(){
 # Transform to and from generic parameter vector theta using formula (43) (not the (43) that's actually (42))
 
 toTheta = function(a,b,delta){
+  s$a = a
+  s$b = b
+  s$delta = delta
   return (c(a, log(-b), log(delta+0.05)))
 }
 
 fromTheta = function(theta){
-  return (data.frame(a=theta[1],b=-exp(theta[2]),delta=-0.05+exp(theta[3])))
+  s$a = theta[1]
+  s$b = -exp(theta[2])
+  s$delta = -0.05+exp(theta[3])
+  return (data.frame(a=s$a,b=s$b,delta=s$delta))
 }
 
 q$theta = toTheta(0.2, -0.15, 0.12)
 
-getA = function(){
-  return (fromTheta(q$theta)[[1]])
-}
 
-getB = function(){
-  return (fromTheta(q$theta)[[2]])
-}
-
-getDelta = function(){
-  return (fromTheta(q$theta)[[3]])
-}
-
-# Discretize X
+# 3.2 Discretization of the availability
 
 setXDiscretization = function (m) {
   # minimum is 0 stored + minimum harvest, maximum is maximum harvest/delta with a safety factor allowing for delta to shrink
   safety_factor = 2
-  s$X = (0:(m-1))/m*(s$Z[s$n]/getDelta()*safety_factor-s$Z[1])+s$Z[1]
+  s$X = (0:(m-1))/m*(s$Z[s$n]/s$delta*safety_factor-s$Z[1])+s$Z[1]
   s$m=m
 }
 
 setXDiscretization(20)
 
-# Iterate to improve price function f
+# 3.2 Iterate to improve price function f
 # f(x,z) is stored as a matrix with f[k,i] representing f(X[k],Z[i])
 
 initF = function(){
   s$f = matrix(nrow=s$m, ncol=s$n)
-  a = getA()
-  b = getB()
   for (k in 1:s$m){
-    s$f[k,]=max(s$P(a,b,s$X[k]), 0)
+    s$f[k,]=max(s$P(s$a,s$b,s$X[k]), 0)
   }
 }
 
@@ -147,25 +139,22 @@ initF()
 # Using formula (28)
 
 iterateF = function (){
-  a = getA()
-  b = getB()
-  delta = getDelta()
   newF = matrix(nrow=s$m, ncol=s$n)
-  beta = (1-delta)/(1+getR())
+  beta = (1-s$delta)/(1+getR())
   splines=list()
   for (i in 1:s$n){
     splines=append(splines,splinefun(s$X, s$f[,i]))
   }
   futureValue = function(x,i){
     v = 0
-    y = s$D(a,b,splines[[i]](x))
+    y = s$D(s$a,s$b,splines[[i]](x))
     for (j in 1:s$n){
-      v = v + s$T[i,j]*splines[[j]](s$Z[j]+(1-delta)*(x-y))
+      v = v + s$Tz[i,j]*splines[[j]](s$Z[j]+(1-s$delta)*(x-y))
     }
     return (beta*v)
   }
   for (k in 1:s$m){
-    currentPrice=s$P(a,b,s$X[k])
+    currentPrice=s$P(s$a,s$b,s$X[k])
     for (i in 1:s$n){
       newF[k,i]=max(futureValue(s$X[k],i),currentPrice)
     }
@@ -183,3 +172,56 @@ plot(s$X,s$f[,1],type="l")
 for(i in 2:s$n){
   points(s$X,s$f[,i],type="l")
 }
+
+
+
+# 3.3 Generate the combined storage/harvest transition matrix
+
+# calculates g(x,z) from formulas (36), (39)
+expectedStorage = function(currentXLvl, currentZLvl) {
+  return ((1-s$delta)*(s$X[currentXLvl]-s$D(s$a,s$b,s$f[currentXLvl,currentZLvl]))+s$rho*s$Z[currentZLvl])
+}
+
+
+# XZ Transition matrix will be ordered by Z on a large scale, X on a small scale
+# X1Z1, X2Z1, ..., XmZ1, X1Z2, X2Z2, ..., xmZn
+generateXZTransitionMatrix = function(){
+  theta = qnorm(0:s$n/s$n)
+  s$Txz = matrix(nrow = s$m*s$n, ncol = s$m*s$n)
+  # i is current X, j is current Z, k is future X, l is future Z
+  for (i in 1:s$m) {
+    for (j in 1:s$n) {
+      row = 
+      for (k in 1:s$m) {
+        for (l in 1:s$n) {
+          
+        }
+      }
+    }
+  }
+}
+
+setZDiscretization(2,0)
+setXDiscretization(3)
+
+generateXZTransitionMatrix()
+
+
+# 5.1 Estimate (inverse) price function for AR case
+
+calculateInversePriceFunction = function () {
+  if (s$rho == 0) {
+    s$fi = (splinefun(s$f[,1], s$X))
+  }
+}
+
+calculateInversePriceFunction()
+
+curve(s$fi(x), from = 0, to = 0.4)
+
+
+# 5.1 Calculate 1-period-ahead expectations and variances using formulas (45) and (46)
+
+# Can the iid case simply use the AR functions for expectation and variance or does it  
+# have to be calculated using a separate procedure?
+
