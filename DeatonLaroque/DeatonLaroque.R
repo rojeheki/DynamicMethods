@@ -78,8 +78,8 @@ plot(1:201, s$Z[lvls], type="l")
 # (Inverse) Demand function
 
 setDemandFunction = function(type){
-  s$P = switch(type, "linear" = function(a,b,x){return (a+b*x)})
-  s$D = switch(type, "linear" = function(a,b,p){return ((p-a)/b)})
+  s$P = switch(type, "linear" = function(x){return (s$a+s$b*x)})
+  s$D = switch(type, "linear" = function(p){return ((p-s$a)/s$b)})
 }
 
 setDemandFunction("linear")
@@ -129,7 +129,7 @@ setXDiscretization(20)
 initF = function(){
   s$f = matrix(nrow=s$m, ncol=s$n)
   for (k in 1:s$m){
-    s$f[k,]=max(s$P(s$a,s$b,s$X[k]), 0)
+    s$f[k,]=max(s$P(s$X[k]), 0)
   }
 }
 
@@ -147,14 +147,14 @@ iterateF = function (){
   }
   futureValue = function(x,i){
     v = 0
-    y = s$D(s$a,s$b,splines[[i]](x))
+    y = s$D(splines[[i]](x))
     for (j in 1:s$n){
       v = v + s$Tz[i,j]*splines[[j]](s$Z[j]+(1-s$delta)*(x-y))
     }
     return (beta*v)
   }
   for (k in 1:s$m){
-    currentPrice=s$P(s$a,s$b,s$X[k])
+    currentPrice=s$P(s$X[k])
     for (i in 1:s$n){
       newF[k,i]=max(futureValue(s$X[k],i),currentPrice)
     }
@@ -179,22 +179,36 @@ for(i in 2:s$n){
 
 # calculates g(x,z) from formulas (36), (39)
 expectedStorage = function(currentXLvl, currentZLvl) {
-  return ((1-s$delta)*(s$X[currentXLvl]-s$D(s$a,s$b,s$f[currentXLvl,currentZLvl]))+s$rho*s$Z[currentZLvl])
+  return ((1-s$delta)*(s$X[currentXLvl]-s$D(s$f[currentXLvl,currentZLvl]))+s$rho*s$Z[currentZLvl])
 }
 
 
 # XZ Transition matrix will be ordered by Z on a large scale, X on a small scale
 # X1Z1, X2Z1, ..., XmZ1, X1Z2, X2Z2, ..., xmZn
+
 generateXZTransitionMatrix = function(){
   theta = qnorm(0:s$n/s$n)
   s$Txz = matrix(nrow = s$m*s$n, ncol = s$m*s$n)
-  # i is current X, j is current Z, k is future X, l is future Z
+  xd = append(append(Inf,(s$X[2:s$m]-s$X[1:(s$m-1)])/2),Inf) # delta/2 between X, xd[i] is left of X[i], xd[i+1] right
   for (i in 1:s$m) {
     for (j in 1:s$n) {
-      row = 
+      c_row = (i-1)*s$n + j
       for (k in 1:s$m) {
         for (l in 1:s$n) {
-          
+          c_column = (k-1)*s$n + l
+          if (c_column > c_row) {break}
+          xdc = s$X[i] - expectedStorage(k,l)   #x discretization correction
+          critXL = xdc - xd[i]
+          critXR = xdc + xd[i+1]
+          critZL = theta[j]-s$rho*s$Z[l]
+          critZR = theta[j+1]-s$rho*s$Z[l]
+          critL = max(critXL,critZL)
+          critR = min(critXR,critZR)
+          if (critL > critR){
+            s$Txz[c_row,c_column]=s$Txz[c_column, c_row] = 0
+          } else {
+            s$Txz[c_row,c_column]=s$Txz[c_column, c_row] = pnorm(critR)-pnorm(critL)
+          }
         }
       }
     }
@@ -205,6 +219,8 @@ setZDiscretization(2,0)
 setXDiscretization(3)
 
 generateXZTransitionMatrix()
+sum(s$Txz[6,])
+eigen(s$Txz)
 
 
 # 5.1 Estimate (inverse) price function for AR case
