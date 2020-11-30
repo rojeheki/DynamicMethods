@@ -1,4 +1,5 @@
 library(cubature)
+library(ggplot2)
 
 # 3.1 Discretization of the Harvest
 
@@ -161,6 +162,7 @@ iterateFOnce = function (){
 }
 
 iterateF = function(dCutoff = 1e-5, nCutoff = 100) {
+  initF()
   lastF = s$f+Inf
   for (i in 1:nCutoff) {
     deviation = max(abs(s$f - lastF))
@@ -174,7 +176,7 @@ iterateF = function(dCutoff = 1e-5, nCutoff = 100) {
   return (FALSE)
 }
 
-initF()
+
 iterateF()
 
 
@@ -226,17 +228,29 @@ generateXZTransitionMatrix = function(){
 
 setZDiscretization(10,0.7)
 setXDiscretization(20)
-initF()
 iterateF()
 
 
 generateXZTransitionMatrix()
-sum(s$Txz)
+
 
 # Calculate invariant distribution
 
+s$id = eigen(s$Txz)$vectors[,1]
+
+# Visualize invariant distribution
+
+idVis = data.frame()
+for (i in 1:s$m){
+  for (j in 1:s$n){
+    nl = data.frame(x=s$X[i], z=s$Z[j], p=as.numeric(s$id[(i-1)*s$n+j]))
+    idVis = rbind(idVis,nl)
+  }
+}
 
 
+idPlot = ggplot(idVis, aes(x=z,y=x,z=p)) + geom_contour_filled()
+idPlot
 
 # 5.1 Estimate (inverse) price function for AR case
 
