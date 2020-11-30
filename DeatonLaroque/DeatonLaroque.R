@@ -99,17 +99,17 @@ toTheta = function(a,b,delta){
   s$a = a
   s$b = b
   s$delta = delta
-  return (c(a, log(-b), log(delta+0.05)))
+  q$theta = c(a, log(-b), log(delta+0.05))
 }
 
 fromTheta = function(theta){
+  q$theta = theta
   s$a = theta[1]
   s$b = -exp(theta[2])
   s$delta = -0.05+exp(theta[3])
-  return (data.frame(a=s$a,b=s$b,delta=s$delta))
 }
 
-q$theta = toTheta(0.2, -0.15, 0.12)
+toTheta(0.2, -0.15, 0.12)
 
 
 # 3.2 Discretization of the availability
@@ -133,12 +133,10 @@ initF = function(){
   }
 }
 
-initF()
-
 
 # Using formula (28)
 
-iterateF = function (){
+iterateFOnce = function (){
   newF = matrix(nrow=s$m, ncol=s$n)
   beta = (1-s$delta)/(1+getR())
   splines=list()
@@ -162,10 +160,22 @@ iterateF = function (){
   s$f=newF
 }
 
-
-for(i in 1:50){
-  iterateF()
+iterateF = function(dCutoff = 1e-5, nCutoff = 100) {
+  lastF = s$f+Inf
+  for (i in 1:nCutoff) {
+    deviation = max(abs(s$f - lastF))
+    if(deviation<dCutoff) {
+      print(i)
+      return (TRUE)
+    }
+    lastF = s$f
+    iterateFOnce()
+  }
+  return (FALSE)
 }
+
+initF()
+iterateF()
 
 
 plot(s$X,s$f[,1],type="l")
@@ -196,8 +206,7 @@ generateXZTransitionMatrix = function(){
       for (k in 1:s$m) {
         for (l in 1:s$n) {
           c_column = (k-1)*s$n + l
-          if (c_column > c_row) {break}
-          xdc = s$X[i] - expectedStorage(k,l)   #x discretization correction
+          xdc = s$X[i] - expectedStorage(k,l)
           critXL = xdc - xd[i]
           critXR = xdc + xd[i+1]
           critZL = theta[j]-s$rho*s$Z[l]
@@ -205,9 +214,9 @@ generateXZTransitionMatrix = function(){
           critL = max(critXL,critZL)
           critR = min(critXR,critZR)
           if (critL > critR){
-            s$Txz[c_row,c_column]=s$Txz[c_column, c_row] = 0
+            s$Txz[c_row,c_column]=0
           } else {
-            s$Txz[c_row,c_column]=s$Txz[c_column, c_row] = pnorm(critR)-pnorm(critL)
+            s$Txz[c_row,c_column]=pnorm(critR)-pnorm(critL)
           }
         }
       }
@@ -215,25 +224,22 @@ generateXZTransitionMatrix = function(){
   }
 }
 
-setZDiscretization(2,0)
-setXDiscretization(3)
+setZDiscretization(10,0.7)
+setXDiscretization(20)
+initF()
+iterateF()
+
 
 generateXZTransitionMatrix()
-sum(s$Txz[6,])
-eigen(s$Txz)
+sum(s$Txz)
+
+# Calculate invariant distribution
+
+
 
 
 # 5.1 Estimate (inverse) price function for AR case
 
-calculateInversePriceFunction = function () {
-  if (s$rho == 0) {
-    s$fi = (splinefun(s$f[,1], s$X))
-  }
-}
-
-calculateInversePriceFunction()
-
-curve(s$fi(x), from = 0, to = 0.4)
 
 
 # 5.1 Calculate 1-period-ahead expectations and variances using formulas (45) and (46)
