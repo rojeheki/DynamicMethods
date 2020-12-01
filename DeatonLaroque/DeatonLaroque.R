@@ -1,3 +1,7 @@
+# Based on "Estimating a nonlinear rational expectations commodity price model
+# with unobservable state variables" by Angus Deaton and Guy Laroque
+# Journal of Applied Econometrics, Vol. 10, S9-S40 (1995)
+
 library(cubature)
 library(ggplot2)
 
