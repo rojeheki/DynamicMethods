@@ -1,4 +1,4 @@
-# Solow model calculated in total units
+# Generic Solow model calculated in total units
 
 library(data.table)
 library(ggplot2)
