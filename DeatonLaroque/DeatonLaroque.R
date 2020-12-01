@@ -1,6 +1,7 @@
 # Based on "Estimating a nonlinear rational expectations commodity price model
 # with unobservable state variables" by Angus Deaton and Guy Laroque
 # Journal of Applied Econometrics, Vol. 10, S9-S40 (1995)
+# https://doi.org/10.1002/jae.3950100503
 
 library(cubature)
 library(ggplot2)
@@ -82,16 +83,12 @@ plot(1:201, s$Z[lvls], type="l")
 
 # (Inverse) Demand function
 
-setDemandFunction = function(type){
-  s$P = switch(type, "linear" = function(x){return (s$a+s$b*x)})
-  s$D = switch(type, "linear" = function(p){return ((p-s$a)/s$b)})
-}
-
-setDemandFunction("linear")
+s$P = function(x){return (s$a+s$b*x)}
+s$D = function(p){return ((p-s$a)/s$b)}
 
 # set static parameters of the QMLE
 
-q = new.env()     # q is for parameters of the QMLE so that the QMLE can be implemented agnostically
+q = new.env()
 q$constants["r"] = 0.05
 
 getR = function(){
@@ -256,7 +253,27 @@ for (i in 1:s$m){
 idPlot = ggplot(idVis, aes(x=z,y=x,z=p)) + geom_contour_filled()
 idPlot
 
+
+# Generate Monte-Carlo data
+
+s$t = 100
+s$mc = data.frame(z = 1, x = 1, p=s$f[5,10])
+r = runif(s$t)
+for (i in 1:(s$t-1)) {
+  j=1
+  while (r[i] > s$Txz[j,(s$mc[i,1]-1)*s$n+s$mc[i,2]]) {
+    r[i] = r[i]-s$Txz[j,(s$mc[i,1]-1)*s$n+s$mc[i,2]]
+    j = j+1
+  }
+  s$mc[i+1,1] = (j-1)%%s$n+1
+  s$mc[i+1,2] = floor((j-1)/s$n)+1
+  s$mc[i+1,3] = s$f[s$mc[i+1,1],s$mc[i+1,2]]
+}
+
+plot(1:s$t,s$mc$p, type="l")
+
 # 5.1 Estimate (inverse) price function for AR case
+# Requires data
 
 
 
