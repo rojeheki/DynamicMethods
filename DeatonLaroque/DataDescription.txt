@@ -1,0 +1,10 @@
+World Income: Maddison (1989) - billions constant (1980) USD
+All Prices: World Bank - current USD
+Production Cocoa: Gill and Duffus Cocoa Statistics - thousands metric tons
+Production Coffee: Brazil’s Departamento Nacional do Cafe - thousands 60kg bags
+Production Copper: Metallstatistik - thousands metric tons
+Production Rice: FAO - millions quintals
+Production Sugar: FAO - millions quintals
+Production Tin: International Tin Council yearbooks - metric tons
+
+All data via: Angus Deaton, Guy Laroque. A model of commodity prices after Sir Arthur Lewis (Journal of Development Economics 71 (2003) 289 – 310)
