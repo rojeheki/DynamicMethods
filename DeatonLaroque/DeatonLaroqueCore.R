@@ -7,26 +7,26 @@ library(ggplot2)
 
 # Import and organize data
 
-dat = read.csv2("TimeSeries.csv", sep=",")
+dat = read.csv("TimeSeries.csv", sep=",", as.is = TRUE)
 com = list(cocoa=new.env(), coffee=new.env(), copper=new.env(), rice=new.env(), sugar=new.env(), tin=new.env())
 
-com$cocoa$pDat = c(dat$P_Cocoa)/c(dat$US_CPI)
-com$cocoa$years = c(dat$Year)
+com$cocoa$pDat = dat$P_Cocoa/dat$US_CPI
+com$cocoa$years = dat$Year
 
-com$coffee$pDat = c(dat$P_Coffee)/c(dat$US_CPI)
-com$coffee$years = c(dat$Year)
+com$coffee$pDat = dat$P_Coffee/dat$US_CPI
+com$coffee$years = dat$Year
 
-com$copper$pDat = c(dat$P_Copper)/c(dat$US_CPI)
-com$copper$years = c(dat$Year)
+com$copper$pDat = dat$P_Copper/dat$US_CPI
+com$copper$years = dat$Year
 
-com$rice$pDat = c(dat$P_Rice)/c(dat$US_CPI)
-com$rice$years = c(dat$Year)
+com$rice$pDat = dat$P_Rice/dat$US_CPI
+com$rice$years = dat$Year
 
-com$sugar$pDat = c(dat$P_Sugar)/c(dat$US_CPI)
-com$sugar$years = c(dat$Year)
+com$sugar$pDat = dat$P_Sugar/dat$US_CPI
+com$sugar$years = dat$Year
 
 com$tin$pDat = c(dat$P_Tin)/c(dat$US_CPI)
-com$tin$years = c(dat$Year)
+com$tin$years = dat$Year
 
 calculateT = function(e){
   e$t = length(e$years)
@@ -308,7 +308,7 @@ calculatePLF = function (e) {
 
 # Complete model initialization
 
-initEverything = function (e, r = 0.05, a = 30, b = -15, delta = 0.12, rho = 0.7, nY = 10, nX = 20) {
+initEverything = function (e, r = 0.05, a = 1, b = -0.5, delta = 0.12, rho = 0.7, nY = 10, nX = 20) {
   setLinearPriceFunction(e)
   setRealInterest(r, e)
   setA(a,e)
