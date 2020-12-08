@@ -64,9 +64,7 @@ idPlot
 
 # Figure 6
 
-s = com$cocoa
-
-# Does not work for other commodities at standard initial parameters
+s = com$rice
 
 initEverything(s, rho=0)
 calculateEverything(s)
