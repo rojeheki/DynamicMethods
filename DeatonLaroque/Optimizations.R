@@ -45,7 +45,7 @@ convertToParAR = function(a,b,delta,rho){
 
 # Nelder-Mead
 
-optIID = optim(par = convertToParIID(0.2, -0.15, 0.12), fn = funIID, data = c(com$coffee), control=list(maxit=200, alpha=1.2, beta=0.9))
+optIID = optim(par = convertToParIID(0.2, -0.15, 0.12), fn = funIID, data = c(com$coffee), control=list(maxit=200, alpha=1.2, beta=0.6))
 convertFromPar(optIID$par)
 
 
