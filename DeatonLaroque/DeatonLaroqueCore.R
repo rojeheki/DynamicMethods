@@ -182,7 +182,8 @@ expectedStorage = function(currentXLvl, currentZLvl, e) {
 
 generateXZTransitionMatrix = function(e){
   theta = qnorm(0:e$nY/e$nY)
-  e$Txz = matrix(nrow = e$nX*e$nY, ncol = e$nX*e$nY)
+  critL = matrix(nrow = e$nX*e$nY, ncol = e$nX*e$nY)
+  critR = matrix(nrow = e$nX*e$nY, ncol = e$nX*e$nY)
   xd = append(append(Inf,(e$X[2:e$nX]-e$X[1:(e$nX-1)])/2),Inf) # delta/2 between X, xd[i] is left of X[i], xd[i+1] right
   for (i in 1:e$nX) {
     for (j in 1:e$nY) {
@@ -195,17 +196,13 @@ generateXZTransitionMatrix = function(e){
           critXR = xdc + xd[i+1]
           critZL = theta[j]-e$rho*e$Z[l]
           critZR = theta[j+1]-e$rho*e$Z[l]
-          critL = max(critXL,critZL)
-          critR = min(critXR,critZR)
-          if (critL > critR){
-            e$Txz[c_row,c_column]=0
-          } else {
-            e$Txz[c_row,c_column]=pnorm(critR)-pnorm(critL)
-          }
+          critL[c_row, c_column] = max(critXL,critZL)
+          critR[c_row, c_column] = min(critXR,critZR)
         }
       }
     }
   }
+  e$Txz = matrix(pmax(0, pnorm(critR)-pnorm(critL)),nrow = e$nX*e$nY, ncol = e$nX*e$nY)
 }
 
 # Calculate invariant distribution
@@ -331,7 +328,7 @@ calculateEverything = function (e, rho, theta) {
   calculateCondS(e)
   calculateS(e)
   calculatePLF(e)
-  print(paste(round(e$a, digits=2), round(e$b, digits=2), round(e$delta, digits=2), round(e$rho, digits=2), round(-e$PLF)))
+  print(c(round(e$a, digits=2), round(e$b, digits=2), round(e$delta, digits=2), round(e$rho, digits=2), round(e$PLF)))
   return (e$PLF)
 }
 
