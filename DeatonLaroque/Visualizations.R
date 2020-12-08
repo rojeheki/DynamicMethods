@@ -40,7 +40,7 @@ plot(1:201, com$cocoa$Z[lvls], type="l")
 s = com$cocoa
 
 initEverything(s)
-calculateEverything(s,s$rho,s$theta)
+calculateEverything(s)
 
 
 plot(s$X,s$f[,1],type="l")
@@ -62,19 +62,28 @@ for (i in 1:s$nX){
 idPlot = ggplot(idVis, aes(x=z,y=x,z=p)) + geom_contour_filled()
 idPlot
 
-# Generate Monte-Carlo data
+# Figure 6
 
-s$mc = data.frame(z = 1, x = 1, p=s$f[5,10])
-r = runif(s$t)
-for (i in 1:(s$t-1)) {
-  j=1
-  while (r[i] > s$Txz[j,(s$mc[i,1]-1)*s$nY+s$mc[i,2]]) {
-    r[i] = r[i]-s$Txz[j,(s$mc[i,1]-1)*s$nY+s$mc[i,2]]
-    j = j+1
-  }
-  s$mc[i+1,1] = (j-1)%%s$nY+1
-  s$mc[i+1,2] = floor((j-1)/s$nY)+1
-  s$mc[i+1,3] = s$f[s$mc[i+1,1],s$mc[i+1,2]]
-}
+s = com$cocoa
 
-plot(1:s$t,s$mc$p, type="l")
+# Does not work for other commodities at standard initial parameters
+
+initEverything(s, rho=0)
+calculateEverything(s)
+
+fi = splinefun(s$f[,1], s$X)
+
+curve(fi(x), from=0, to=max(s$pDat))
+
+
+# Figure 7
+
+fm = splinefun(s$pDat, s$m)
+
+curve(fm(x), from=0, to=max(s$pDat))
+
+# Figure 8
+
+fs = splinefun(s$pDat, s$s)
+
+curve(fs(x), from=0, to=max(s$pDat))
