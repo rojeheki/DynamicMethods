@@ -37,14 +37,16 @@ convertToPar = function(a,b,delta,rho){
 
 # Nelder-Mead
 
-optIID = optim(par = convertToPar(2, -0.5, 0.12, 0), fn = funIID, data = c(com$coffee), control=list(maxit=200, alpha=1.2, gamma=2))
+optIID = optim(par = convertToPar(0.2, -0.15, 0.12, 0), fn = funIID, data = c(com$coffee), control=list(maxit=200, alpha=1.2, beta=0.9))
+convertFromPar(optIID$par)
 
-optAR = optim(par = convertToPar(2, -0.5, 0.12, 0.7), fn = funAR, data = c(com$coffee), control=list(maxit=200))
+
+optAR = optim(par = convertToPar(0.2, -0.15, 0.12, 0.7), fn = funAR, data = c(com$coffee), control=list(maxit=200))
 
 
 # BFGS (tries to set parameters to Inf or -Inf)
 
-optIID = optim(par = convertToPar(2, -0.5, 0.12, 0), fn = funIID, data = c(com$coffee), method = "BFGS", control=list(maxit=200))
+optIID = optim(par = convertToPar(0.2, -0.15, 0.12, 0), fn = funIID, data = c(com$coffee), method = "BFGS", control=list(maxit=200))
 
 
 
@@ -61,5 +63,5 @@ funAR = function (data, par) {
   return (- calculateEverything(data[[1]], par[1], par[2], par[3], par[4]))
 }
 
-optIID = optim(par = c(2, -0.5, 0.12), lower = c(0.01,-3,0), upper = c(5,0,1), fn = funIID, data = c(com$coffee), method="L-BFGS-B", control=list(maxit=200))
+optIID = optim(par = c(0.2, -0.15, 0.12), lower = c(0.01,-1,0), upper = c(1,0,1), fn = funIID, data = c(com$coffee), method="L-BFGS-B", control=list(maxit=200))
 
