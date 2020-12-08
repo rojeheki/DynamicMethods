@@ -43,28 +43,26 @@ generateZTransitionMatrix = function(e) {
   f = function(x) {
     exp(-(x[1]^2-2*e$rho*x[1]*x[2]+x[2]^2)/(2*(1-e$rho^2)))/(2*pi*sqrt(1-e$rho^2))
   }
-  theta = qnorm(0:e$n/e$n)
-  e$Tz = matrix(nrow = e$n, ncol = e$n)
-  for(i in 1:e$n) {
+  theta = qnorm(0:e$nY/e$nY)
+  e$Tz = matrix(nrow = e$nY, ncol = e$nY)
+  for(i in 1:e$nY) {
     for(j in 1:i){
-      e$Tz[i,j]=e$Tz[j,i]=adaptIntegrate(f, lowerLimit=c(theta[i],theta[j]),upperLimit=c(theta[i+1],theta[j+1]))$integral*e$n
+      e$Tz[i,j]=e$Tz[j,i]=adaptIntegrate(f, lowerLimit=c(theta[i],theta[j]),upperLimit=c(theta[i+1],theta[j+1]))$integral*e$nY
     }
   }
 }
 
 calculateZLevels = function(e){
-  theta = qnorm(0:e$n/e$n)
-  e$Z = (-(dnorm(theta[-1])-dnorm(theta[-(e$n+1)]))*e$n)
+  theta = qnorm(0:e$nY/e$nY)
+  e$Z = (-(dnorm(theta[-1])-dnorm(theta[-(e$nY+1)]))*e$nY)
 }
 
 setZDiscretization = function(n,rho,e){
-  e$n=n
+  e$nY=n
   e$rho=rho
   generateZTransitionMatrix(e)
   calculateZLevels(e)
 }
-
-setZDiscretization(10,0.7,com$cocoa)
 
 expectedHarvest = function(currentZLvl, e){
   return (sum(e$Tz[currentZLvl,]*e$Z))
@@ -74,41 +72,6 @@ varianceExpectedHarvest = function(currentZLvl, e){
   mean = expectedHarvest(currentZLvl, e)
   return (sum(e$Tz[currentZLvl,]*(e$Z)^2)-mean^2)
 }
-
-# Figure 1
-setZDiscretization(10,0.7, com$cocoa)
-eH = c()
-for (i in 1:10){
-  eH[i]=expectedHarvest(i, com$cocoa)
-}
-
-plot(-2:2, -2:2*0.7, type="l")
-points(com$cocoa$Z[1:10],eH, type="l")
-
-# Figure 2 - Adjustment of the actual conditional variance by 1/(1-rho^2) necessary to replicate the chart
-plot(c(-2,2),c(0,1.5))
-for (rho in c(0.1,0.3,0.5,0.7,0.9)){
-  setZDiscretization(10,rho,com$cocoa)
-  v = c()
-  for (i in 1:10){
-    v[i]=varianceExpectedHarvest(i,com$cocoa)/(1-rho^2)
-  }
-  points(com$cocoa$Z[1:10],v, type="l")
-}
-
-# Figure 3
-setZDiscretization(10,0.7,com$cocoa)
-lvls = c(5)
-r = runif(200)
-for (i in 1:200) {
-  j=1
-  while (r[i] > com$cocoa$Tz[lvls[i],j]) {
-    r[i] = r[i]-com$cocoa$Tz[lvls[i],j]
-    j = j+1
-  }
-  lvls[i+1] = j
-}
-plot(1:201, com$cocoa$Z[lvls], type="l")
 
 # Set (Inverse) Demand function and real interest
 
@@ -121,10 +84,6 @@ setRealInterest = function(r, e) {
   e$r = 0.05
 }
 
-for (e in com) {
-  setLinearPriceFunction(e)
-  setRealInterest(0.05, e)
-}
 
 # Transform to and from generic parameter vector theta using formula (43) (not the (43) that's actually (42))
 
@@ -135,7 +94,7 @@ toTheta = function(a,b,delta,e){
   e$theta = c(a, log(-b), log(delta+0.05))
 }
 
-fromTheta = function(theta,e){
+fromTheta = function(theta, e){
   e$theta = theta
   e$a = theta[1]
   e$b = -exp(theta[2])
@@ -143,30 +102,26 @@ fromTheta = function(theta,e){
 }
 
 initTheta = function (e) {
-  toTheta(0.2, -0.15, 0.12, e)
+  toTheta(3, -2, 0.12, e)
 }
 
-for (e in com) {
-  initTheta(e)
-}
 
 # 3.2 Discretization of the availability
 
 setXDiscretization = function (m,e) {
   # minimum is 0 stored + minimum harvest, maximum is maximum harvest/delta with a safety factor allowing for delta to shrink
   safety_factor = 2
-  e$X = (0:(m-1))/m*(e$Z[e$n]/e$delta*safety_factor-e$Z[1])+e$Z[1]
-  e$m=m
+  e$X = (0:(m-1))/m*(e$Z[e$nY]/e$delta*safety_factor-e$Z[1])+e$Z[1]
+  e$nX=m
 }
 
-setXDiscretization(20, com$cocoa)
 
 # 3.2 Iterate to improve price function f
 # f(x,z) is stored as a matrix with f[k,i] representing f(X[k],Z[i])
 
 initF = function(e){
-  e$f = matrix(nrow=e$m, ncol=e$n)
-  for (k in 1:e$m){
+  e$f = matrix(nrow=e$nX, ncol=e$nY)
+  for (k in 1:e$nX){
     e$f[k,]=max(e$P(e$X[k]), 0)
   }
 }
@@ -175,23 +130,23 @@ initF = function(e){
 # Using formula (28)
 
 iterateFOnce = function (e){
-  newF = matrix(nrow=e$m, ncol=e$n)
+  newF = matrix(nrow=e$nX, ncol=e$nY)
   beta = (1-e$delta)/(1+e$r)
   splines=list()
-  for (i in 1:e$n){
+  for (i in 1:e$nY){
     splines=append(splines,splinefun(e$X, e$f[,i]))
   }
   futureValue = function(x,i){
     v = 0
     y = e$D(splines[[i]](x))
-    for (j in 1:e$n){
+    for (j in 1:e$nY){
       v = v + e$Tz[i,j]*splines[[j]](e$Z[j]+(1-e$delta)*(x-y))
     }
     return (beta*v)
   }
-  for (k in 1:e$m){
+  for (k in 1:e$nX){
     currentPrice=e$P(e$X[k])
-    for (i in 1:e$n){
+    for (i in 1:e$nY){
       newF[k,i]=max(futureValue(e$X[k],i),currentPrice)
     }
   }
@@ -204,7 +159,7 @@ iterateF = function(e, dCutoff = 1e-5, nCutoff = 100) {
   for (i in 1:nCutoff) {
     deviation = max(abs(e$f - lastF))
     if(deviation<dCutoff) {
-      print(i)
+      # print(i)
       return (TRUE)
     }
     lastF = e$f
@@ -212,16 +167,6 @@ iterateF = function(e, dCutoff = 1e-5, nCutoff = 100) {
   }
   return (FALSE)
 }
-
-
-iterateF(com$cocoa)
-
-
-plot(com$cocoa$X,com$cocoa$f[,1],type="l")
-for(i in 2:com$cocoa$n){
-  points(com$cocoa$X,com$cocoa$f[,i],type="l")
-}
-
 
 
 # 3.3 Generate the combined storage/harvest transition matrix
@@ -236,15 +181,15 @@ expectedStorage = function(currentXLvl, currentZLvl, e) {
 # X1Z1, X2Z1, ..., XmZ1, X1Z2, X2Z2, ..., xmZn
 
 generateXZTransitionMatrix = function(e){
-  theta = qnorm(0:e$n/e$n)
-  e$Txz = matrix(nrow = e$m*e$n, ncol = e$m*e$n)
-  xd = append(append(Inf,(e$X[2:e$m]-e$X[1:(e$m-1)])/2),Inf) # delta/2 between X, xd[i] is left of X[i], xd[i+1] right
-  for (i in 1:e$m) {
-    for (j in 1:e$n) {
-      c_row = (i-1)*e$n + j
-      for (k in 1:e$m) {
-        for (l in 1:e$n) {
-          c_column = (k-1)*e$n + l
+  theta = qnorm(0:e$nY/e$nY)
+  e$Txz = matrix(nrow = e$nX*e$nY, ncol = e$nX*e$nY)
+  xd = append(append(Inf,(e$X[2:e$nX]-e$X[1:(e$nX-1)])/2),Inf) # delta/2 between X, xd[i] is left of X[i], xd[i+1] right
+  for (i in 1:e$nX) {
+    for (j in 1:e$nY) {
+      c_row = (i-1)*e$nY + j
+      for (k in 1:e$nX) {
+        for (l in 1:e$nY) {
+          c_column = (k-1)*e$nY + l
           xdc = e$X[i] - expectedStorage(k,l,e)
           critXL = xdc - xd[i]
           critXR = xdc + xd[i+1]
@@ -263,16 +208,6 @@ generateXZTransitionMatrix = function(e){
   }
 }
 
-for (e in com) {
-  setZDiscretization(10,0.7,e)
-  setXDiscretization(20,e)
-  initTheta(e)
-  iterateF(e)
-
-  generateXZTransitionMatrix(e)
-}
-
-
 # Calculate invariant distribution
 
 calculateInvariantDistribution = function(e) {
@@ -282,61 +217,21 @@ calculateInvariantDistribution = function(e) {
   }
 }
 
-for (e in com) {
-  calculateInvariantDistribution(e)
-}
-
-
-# Visualize invariant distribution
-
-s = com$cocoa
-
-idVis = data.frame()
-for (i in 1:s$m){
-  for (j in 1:s$n){
-    nl = data.frame(x=s$X[i], z=s$Z[j], p=as.numeric(s$id[(i-1)*s$n+j]))
-    idVis = rbind(idVis,nl)
-  }
-}
-
-
-idPlot = ggplot(idVis, aes(x=z,y=x,z=p)) + geom_contour_filled()
-idPlot
-
-
-# Generate Monte-Carlo data
-
-s$t = 100
-s$mc = data.frame(z = 1, x = 1, p=s$f[5,10])
-r = runif(s$t)
-for (i in 1:(s$t-1)) {
-  j=1
-  while (r[i] > s$Txz[j,(s$mc[i,1]-1)*s$n+s$mc[i,2]]) {
-    r[i] = r[i]-s$Txz[j,(s$mc[i,1]-1)*s$n+s$mc[i,2]]
-    j = j+1
-  }
-  s$mc[i+1,1] = (j-1)%%s$n+1
-  s$mc[i+1,2] = floor((j-1)/s$n)+1
-  s$mc[i+1,3] = s$f[s$mc[i+1,1],s$mc[i+1,2]]
-}
-
-plot(1:s$t,s$mc$p, type="l")
-
 # 5.1 Estimate harvest level probabilities from price series
 
 calculateGamma = function(e) {
-  e$gamma = matrix(nrow=e$n, ncol=e$t)
-  helper = matrix(nrow=e$n, ncol=e$t)    # contains non-normalized probabilities
-  for (i in 1:e$n) {
+  e$gamma = matrix(nrow=e$nY, ncol=e$t)
+  helper = matrix(nrow=e$nY, ncol=e$t)    # contains non-normalized probabilities
+  for (i in 1:e$nY) {
     inversePriceFunction = splinefun(e$f[,i], e$X)
-    probabilitySpline = splinefun(e$X, e$id[((i-1)*e$m+1):(i*e$m)])
+    probabilitySpline = splinefun(e$X, e$id[((i-1)*e$nX+1):(i*e$nX)])
     for (t in 1:e$t) {
       assumedX = inversePriceFunction(e$pDat[t])
       helper[i,t] = max(0, probabilitySpline(assumedX))
       # print(paste(i,t,assumedX,probabilitySpline(assumedX)))
     }
   }
-  for (i in 1:e$n) {
+  for (i in 1:e$nY) {
     for (t in 1:e$t) {
       e$gamma[i,t] = helper[i,t]/sum(helper[,t])
     }
@@ -347,17 +242,113 @@ calculateGamma = function(e) {
 }
 
 
-for (e in com){
-  calculateGamma(e)
+# 5.1 Calculate 1-period-ahead expectations and variances
+
+# Using formula (45), calculate a matrix condM that has m(pt, Zi) in condM[t,i]
+calculateCondM = function(e) {
+  e$condM = matrix(nrow=e$t, ncol=e$nY)
+  forwardSplines=list()
+  inverseSplines=list()
+  for (i in 1:e$nY){
+    forwardSplines=append(forwardSplines,splinefun(e$X, e$f[,i]))
+    inverseSplines=append(inverseSplines,splinefun(e$f[,i], e$X))
+  }
+  for (t in 1:e$t){
+    for (i in 1:e$nY){
+      value = 0
+      for (j in 1:e$nY){
+        value=value+ e$Tz[j,i]*forwardSplines[[j]]((1-e$delta)*(inverseSplines[[i]](e$pDat[t])-e$D(e$pDat[t]))+e$Z[j])
+      }
+      e$condM[t,i] = value
+    }
+  }
+}
+
+
+# Using formula (48), calculate a vector m that has m(pt) in m[t]
+calculateM = function (e) {
+  e$m = diag(e$condM %*% e$gamma)
+}
+
+
+# Using formula (46), calculate a matrix condS that has s(pt, Zi) in condS[t,i]
+calculateCondS = function (e) {
+  e$condS = matrix(nrow=e$t, ncol=e$nY)
+  forwardSplines=list()
+  inverseSplines=list()
+  for (i in 1:e$nY){
+    forwardSplines=append(forwardSplines,splinefun(e$X, e$f[,i]))
+    inverseSplines=append(inverseSplines,splinefun(e$f[,i], e$X))
+  }
+  for (t in 1:e$t){
+    for (i in 1:e$nY){
+      value = 0
+      for (j in 1:e$nY){
+        value=value+ e$Tz[j,i]*(forwardSplines[[j]]((1-e$delta)*(inverseSplines[[i]](e$pDat[t])-e$D(e$pDat[t]))+e$Z[j]))^2
+      }
+      e$condS[t,i] = value - (e$condM[t,i])^2
+    }
+  }
+}
+
+
+# Using formula (49), calculate a vector s that has s(pt) in s[t]
+calculateS = function (e) {
+  e$s = diag(e$condS %*% e$gamma) + diag((e$condM-e$m)^2 %*% e$gamma)
 }
 
 
 
-# 5.1 Calculate 1-period-ahead expectations and variances using formulas (45)/(46) and (48)/(49)
-
-
 # Calculate Pseudo Log Likelihood Function
 
+calculatePLF = function (e) {
+  e$PLF = -0.5*((e$t-1)*log(2*pi) + sum(log(e$s[-e$t])) + sum((e$pDat[-1]-e$m[-e$t])^2/e$s[-e$t]))
+}
 
-# Optimize Pseudo Log Likelihood Function
+
+# Complete model initialization
+
+initEverything = function (e, r = 0.05, a = 3, b = -2, delta = 0.12, rho = 0.7) {
+  setLinearPriceFunction(e)
+  setRealInterest(0.05, e)
+  toTheta(3, -2, 0.12, e)
+  setZDiscretization(10,0.7,e)
+  setXDiscretization(20,e)
+}
+
+# Calculate the entire model from given nY, nX, theta, rho, pDat, t
+
+calculateEverything = function (e, rho, theta) {
+  setZDiscretization(e$nY,rho,e)
+  setXDiscretization(e$nX,e)
+  fromTheta(theta,e)
+  iterateF(e)
+  generateXZTransitionMatrix(e)
+  calculateInvariantDistribution(e)
+  calculateGamma(e)
+  calculateCondM(e)
+  calculateM(e)
+  calculateCondS(e)
+  calculateS(e)
+  calculatePLF(e)
+  print(paste(e$a, e$b, e$delta, e$rho, e$PLF))
+  return (e$PLF)
+}
+
+
+# Optimize Pseudo Log Likelihood Function (just cocoa for now)
+
+funIID = function (data, par) {
+  return (- calculateEverything(data[[1]], data[[2]], par))
+}
+
+funAR = function (data, par) {
+  return (- calculateEverything(data[[1]], par[4], par[1:3]))
+}
+
+initEverything(com$cocoa)
+
+optIID = optim(par = c(3, 0.693, -1.772), fn = funIID, data = c(com$cocoa, 0))
+
+optAR = optim(par = c(3, 0.693, -1.772, 0.7), fn = funIID, data = c(com$cocoa))
 
