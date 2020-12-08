@@ -73,7 +73,7 @@ varianceExpectedHarvest = function(currentZLvl, e){
   return (sum(e$Tz[currentZLvl,]*(e$Z)^2)-mean^2)
 }
 
-# Set (Inverse) Demand function and real interest
+# Setter functions for various parameters
 
 setLinearPriceFunction = function(e) {
   e$P = function(x){return (e$a+e$b*x)}
@@ -81,37 +81,29 @@ setLinearPriceFunction = function(e) {
 }
 
 setRealInterest = function(r, e) {
-  e$r = 0.05
+  e$r = r
 }
 
-
-# Transform to and from generic parameter vector theta using formula (43) (not the (43) that's actually (42))
-
-toTheta = function(a,b,delta,e){
+setA = function(a, e) {
   e$a = a
+}
+
+setB = function(b, e) {
   e$b = b
+}
+
+setDelta = function(delta, e) {
   e$delta = delta
-  e$theta = c(a, log(-b), log(delta+0.05))
-}
-
-fromTheta = function(theta, e){
-  e$theta = theta
-  e$a = theta[1]
-  e$b = -exp(theta[2])
-  e$delta = -0.05+exp(theta[3])
-}
-
-initTheta = function (e) {
-  toTheta(3, -2, 0.12, e)
 }
 
 
 # 3.2 Discretization of the availability
 
 setXDiscretization = function (m,e) {
-  # minimum is 0 stored + minimum harvest, maximum is maximum harvest/delta with a safety factor allowing for delta to shrink
+  # minimum is 0 stored + minimum harvest*safety_factor, maximum is maximum harvest/delta*safety_factor
+  # The safety factor allows for prices to go higher than D(minimum harvest) and allows for delta to shrink
   safety_factor = 2
-  e$X = (0:(m-1))/m*(e$Z[e$nY]/e$delta*safety_factor-e$Z[1])+e$Z[1]
+  e$X = (0:(m-1))/m*(e$Z[e$nY]/e$delta*safety_factor-e$Z[1])+e$Z[1]*safety_factor
   e$nX=m
 }
 
@@ -233,6 +225,17 @@ calculateGamma = function(e) {
       e$gamma[i,t] = helper[i,t]/sum(helper[,t])
     }
   }
+  for (t in 1:e$t) {
+    if (sum(helper[,t]) == 0) {
+      if (helper[1,t]>helper[e$nY,t]) {
+        e$gamma[1,t] = 1
+        e$gamma[-1,t] = 0
+      } else {
+        e$gamma[e$nY,t] = 1
+        e$gamma[-e$nY,t] = 0
+      }
+    }
+  }
   for (t in e$t){
     stopifnot(round(sum(e$gamma[,t]), digits=6) == 1)
   }
@@ -308,17 +311,21 @@ calculatePLF = function (e) {
 initEverything = function (e, r = 0.05, a = 3, b = -2, delta = 0.12, rho = 0.7, nY = 10, nX = 20) {
   setLinearPriceFunction(e)
   setRealInterest(r, e)
-  toTheta(a, b, delta, e)
+  setA(a,e)
+  setB(b,e)
+  setDelta(delta,e)
   setZDiscretization(nY,rho,e)
   setXDiscretization(nX,e)
 }
 
 # Calculate the entire model from given nY, nX, theta, rho, pDat, t
 
-calculateEverything = function (e, rho, theta) {
+calculateEverything = function (e, a=e$a, b=e$b, delta=e$delta, rho=e$rho) {
   setZDiscretization(e$nY,rho,e)
   setXDiscretization(e$nX,e)
-  fromTheta(theta,e)
+  setA(a,e)
+  setB(b,e)
+  setDelta(delta,e)
   iterateF(e)
   generateXZTransitionMatrix(e)
   calculateInvariantDistribution(e)
