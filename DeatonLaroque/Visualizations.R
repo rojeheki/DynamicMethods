@@ -61,7 +61,7 @@ idPlot = ggplot(idVis, aes(x=z,y=x,z=p)) + geom_contour_filled()
 idPlot
 
 # Figure 6
-s = com$rice
+s = com$sugar
 initEverything(s, rho=0)
 calculateEverything(s)
 
