@@ -2,7 +2,7 @@
 
 initEverything(com$coffee)
 
-system.time(calculateEverything(com$coffee,3,-2,0.12,0))
+system.time(calculateEverything(com$coffee))
 
 # Using transformations so that the optimization can be unbounded
 
