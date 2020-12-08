@@ -308,7 +308,7 @@ calculatePLF = function (e) {
 
 # Complete model initialization
 
-initEverything = function (e, r = 0.05, a = 3, b = -2, delta = 0.12, rho = 0.7, nY = 10, nX = 20) {
+initEverything = function (e, r = 0.05, a = 30, b = -15, delta = 0.12, rho = 0.7, nY = 10, nX = 20) {
   setLinearPriceFunction(e)
   setRealInterest(r, e)
   setA(a,e)
