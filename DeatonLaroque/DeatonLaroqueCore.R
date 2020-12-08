@@ -320,7 +320,7 @@ initEverything = function (e, r = 0.05, a = 0.2, b = -0.15, delta = 0.12, rho = 
 
 # Calculate the entire model from given nY, nX, theta, rho, pDat, t
 
-calculateEverything = function (e, a=e$a, b=e$b, delta=e$delta, rho=e$rho) {
+calculateEverything = function (e, a=e$a, b=e$b, delta=e$delta, rho=e$rho, output = TRUE) {
   setZDiscretization(e$nY,rho,e)
   setXDiscretization(e$nX,e)
   setA(a,e)
@@ -335,7 +335,9 @@ calculateEverything = function (e, a=e$a, b=e$b, delta=e$delta, rho=e$rho) {
   calculateCondS(e)
   calculateS(e)
   calculatePLF(e)
-  print(c(round(e$a, digits=2), round(e$b, digits=2), round(e$delta, digits=2), round(e$rho, digits=2), round(e$PLF)))
+  if (output) {
+    print(c(round(e$a, digits=2), round(e$b, digits=2), round(e$delta, digits=2), round(e$rho, digits=2), round(e$PLF)))
+  }
   return (e$PLF)
 }
 
