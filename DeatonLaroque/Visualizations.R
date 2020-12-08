@@ -1,3 +1,6 @@
+# Run DeatonLaroqueCore.R before this file
+
+
 # Figure 1
 s = com$cocoa
 initEverything(s)
