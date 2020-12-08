@@ -34,20 +34,22 @@ for (i in 1:200) {
 plot(1:201, com$cocoa$Z[lvls], type="l")
 
 
+
+
 # Figure 4
-plot(com$cocoa$X,com$cocoa$f[,1],type="l")
-for(i in 2:com$cocoa$nY){
-  points(com$cocoa$X,com$cocoa$f[,i],type="l")
-}
-
-
-# Visualize invariant distribution
-
 s = com$cocoa
 
 initEverything(s)
 calculateEverything(s,s$rho,s$theta)
 
+
+plot(s$X,s$f[,1],type="l")
+for(i in 2:s$nY){
+  points(s$X,s$f[,i],type="l")
+}
+
+
+# Figure 5
 idVis = data.frame()
 for (i in 1:s$nX){
   for (j in 1:s$nY){
